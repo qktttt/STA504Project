@@ -8,6 +8,7 @@ library(ggthemes)
 library(tidyverse)
 library(shinyWidgets)
 
+### Set to the path of the repository after you get the repository
 setwd("C:/Users/qik/Desktop/STA404 Project/")
 load("SavedData.RData")
 
@@ -81,6 +82,7 @@ server <- function(input, output) {
     )
   }
 
+  #### creating the map plot here
   output$Mapplot <- renderPlotly({
     if (input$roomType != "all type") {
       selectedGroupedData <- grouped_by_data_withType %>% filter(room_type == input$roomType)
@@ -101,6 +103,7 @@ server <- function(input, output) {
 
   })
 
+  # create the bar plot for number of airbnbs at different area
   output$Statplot <- renderPlotly({
     airbnbNumber <- Airbnb2 %>% group_by(Area) %>% count()
     airbnbNumber <- airbnbNumber %>% arrange(n)
@@ -110,8 +113,11 @@ server <- function(input, output) {
     ggplotly(result, width=600)
   })
 
+  # Creating histogram
   output$histogram <- renderPlotly({
     data <- event_data("plotly_click")
+
+    ### filter possible data
     selectedData <- NULL
     if (is.null(data)) {
       selectedSubarea = "New York City"
@@ -119,13 +125,15 @@ server <- function(input, output) {
 
     } else {
       print(data)
-      if (as.integer(data["curveNumber"]) == 1) {
+      # filter out invalid click
+      if (as.integer(data["curveNumber"]) == 1 | abs(as.integer(data["x"])) < 20) {
         selectedSubarea = "New York City"
         selectedData <- Airbnb2
       } else {
         selectedX <- as.numeric(data["x"])
         selectedY <- as.numeric(data["y"])
 
+        ## searching which area is clicked
         #print(grouped_by_data)
         print(selectedX)
         print(selectedY)
@@ -139,6 +147,7 @@ server <- function(input, output) {
     }
 
 
+    ### store the roomtype for further text description
     if (input$roomType != "all type") {
       selectedData <- selectedData %>% filter(room_type == input$roomType)
       roomType(paste(input$roomType, "type"))
@@ -171,13 +180,14 @@ server <- function(input, output) {
     perPlot <- ggplot(selectedDta_Count, aes(x = room_type, y = percentage, fill = room_type)) +
                 geom_histogram(stat="identity", fill="lightblue") + labs(
                   x = "Room Type",
-                  y = "Percentage of room type",
-                  title = paste("Percentage of Three Room Types for Area: ", input$area, sep="")
+                  y = "Proportion of room type",
+                  title = paste("Proportion of Three Room Types for Area: ", input$area, sep="")
                 ) + theme(plot.title = element_text(hjust = 0.5))
 
-    ggplotly(perPlot, width=500)
+    ggplotly(perPlot, width=600)
   })
 
+  # creating text description for the data clicked
   output$mapDescription <- renderText({
     result <- paste("Current seleced area is: ", storedSubarea(), ".", sep="")
     numAvai <- NROW(storedSubareaData())
@@ -188,7 +198,7 @@ server <- function(input, output) {
     result <- paste(result, paste(" In this area, considering Airbnb of ", roomType(),
                                   ", there are ", as.integer(numAvai), " Airbnbs available. The average Airbnb price at here is ",sprintf("%.2f", meanPrice),
     ". The maximum, minimum Airbnb price in this area are, respectively: ", sprintf("%.2f", maxPrice),
-    " ", sprintf("%.2f", minPrice), ". And the median price is: ", sprintf("%.2f", medianPrice), ".", sep=""))
+    " ", sprintf("%.2f", minPrice), ". And the median price is: ", sprintf("%.2f", medianPrice), ".", " For display effects, some extremely values maybe removed.",sep=""))
   })
 }
 
